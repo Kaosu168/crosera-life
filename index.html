@@ -1,0 +1,365 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8"/>
+<meta name="viewport" content="width=device-width,initial-scale=1"/>
+<title>Crosera — Firebase demo</title>
+<style>
+:root{/*brand-1:#5b8c7a;--brand-2:#f6d6ad;--bg:#fffaf6;--muted:#6b6b6b;--card-shadow:0 6px 18px rgba(90,90,90,0.08);--radius:12px;--maxw:1200px;*/}
+*{box-sizing:border-box;font-family:Inter,system-ui,Arial;}
+body{margin:0;background:var(--bg);color:#222}
+.header{background:linear-gradient(90deg,var(--brand-1),#3f6b5d);color:#fff;padding:16px 18px;position:sticky;top:0;z-index:30}
+.container{max-width:var(--maxw);margin:0 auto;padding:18px;display:flex;gap:18px}
+.logo{display:flex;align-items:center;gap:12px}
+.logo .mark{width:48px;height:48px;border-radius:10px;background:var(--brand-2);display:flex;align-items:center;justify-content:center;color:#254;font-weight:800}
+.header .nav{margin-left:auto;display:flex;gap:10px;align-items:center}
+.btn{background:var(--brand-1);color:#fff;border:none;padding:8px 12px;border-radius:10px;cursor:pointer}
+.main-layout{display:flex;gap:18px;margin-top:18px;max-width:var(--maxw);margin-left:auto;margin-right:auto}
+.sidebar{width:220px;background:#fff;border-radius:10px;padding:12px;box-shadow:var(--card-shadow)}
+.content{flex:1}
+.search-row{display:flex;gap:10px;align-items:center;margin-bottom:12px}
+.search-row input{flex:1;padding:8px;border-radius:8px;border:1px solid #eee}
+.grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(220px,1fr));gap:14px}
+.card{background:#fff;padding:12px;border-radius:10px;box-shadow:var(--card-shadow);display:flex;flex-direction:column;gap:8px}
+.card img{width:100%;height:160px;object-fit:cover;border-radius:8px}
+.price{font-weight:700}
+.product-detail{display:none;background:#fff;padding:18px;border-radius:12px;box-shadow:var(--card-shadow);}
+.product-top{display:flex;gap:18px;align-items:flex-start}
+.gallery{width:420px;display:flex;flex-direction:column;gap:8px}
+.gallery .main-img{width:100%;height:360px;object-fit:cover;border-radius:10px}
+.thumbs{display:flex;gap:8px;flex-wrap:wrap}
+.thumb{width:72px;height:72px;object-fit:cover;border-radius:8px;cursor:pointer;border:2px solid transparent}
+.thumb.selected{border-color:var(--brand-1)}
+.product-info{flex:1}
+.cart-panel{position:fixed;right:18px;bottom:18px;background:#fff;border-radius:14px;padding:12px;box-shadow:0 12px 30px rgba(0,0,0,0.12);width:360px;display:none;z-index:40}
+.admin-panel{position:fixed;left:18px;bottom:18px;background:#fff;border-radius:12px;padding:12px;box-shadow:var(--card-shadow);width:520px;max-height:80vh;overflow:auto;display:none;z-index:50}
+.tabs{display:flex;gap:6px;margin-bottom:10px}
+.tab{padding:8px 10px;border-radius:8px;cursor:pointer;background:#f4f4f4}
+.tab.active{background:var(--brand-1);color:#fff}
+.field{margin-bottom:10px}
+input[type="text"], textarea, select{width:100%;padding:8px;border-radius:8px;border:1px solid #ddd}
+textarea{min-height:80px;resize:vertical}
+.small{font-size:13px;color:var(--muted)}
+.footer{padding:28px 18px;color:#444;margin-top:24px;background:transparent}
+.left-categories{display:flex;flex-direction:column;gap:6px}
+.category-link{padding:8px;border-radius:6px;cursor:pointer}
+.category-link:hover{background:#f0f0f0}
+@media (max-width:900px){.sidebar{display:none}.main-layout{flex-direction:column;padding:12px}}
+</style>
+</head>
+<body>
+<header class="header">
+  <div class="container">
+    <div class="logo"><div class="mark" id="logo">Cr</div><div><div id="site-title" style="font-weight:800">Crosera</div><div class="small">DIY crochet kits & tutorials</div></div></div>
+    <div class="nav">
+      <button class="btn" id="view-home">Home</button>
+      <button class="btn" id="view-cart-btn">Cart (<span id="cart-count">0</span>)</button>
+      <button class="btn" id="open-admin-btn">Admin</button>
+    </div>
+  </div>
+</header>
+
+<div class="main-layout" style="max-width:var(--maxw);margin:18px auto;">
+  <aside class="sidebar" id="left-sidebar">
+    <h4>Categories</h4>
+    <div class="left-categories" id="left-cats"></div>
+    <hr/>
+    <div class="small">Filter</div>
+    <select id="filter-dropdown" style="width:100%;margin-top:8px;padding:8px;border-radius:8px;border:1px solid #eee">
+      <option value="">All categories</option>
+    </select>
+  </aside>
+
+  <section class="content">
+    <div class="search-row">
+      <input id="search" placeholder="Search kits...">
+      <select id="top-category">
+        <option value="">All categories</option>
+      </select>
+      <button class="btn" id="shop-now">Shop</button>
+    </div>
+
+    <div id="catalog">
+      <h2 id="catalog-title">Popular kits</h2>
+      <div class="grid" id="product-grid"></div>
+    </div>
+
+    <div id="product-detail" class="product-detail" aria-live="polite"></div>
+  </section>
+</div>
+
+<div id="cart-panel" class="cart-panel" aria-hidden="true">
+  <h3>Your cart</h3>
+  <div id="cart-items"></div>
+  <div style="padding-top:8px;border-top:1px solid #eee;margin-top:8px;display:flex;justify-content:space-between;align-items:center">
+    <div><strong>Total:</strong> $<span id="cart-total">0.00</span></div>
+    <div><button class="btn" id="checkout">Checkout</button></div>
+  </div>
+</div>
+
+<div id="admin-panel" class="admin-panel" aria-hidden="true">
+  <h3>Admin — Crosera</h3>
+  <div class="small">Edit everything. Changes persist in Firebase (instant-save).</div>
+  <div class="tabs" id="admin-tabs">
+    <div class="tab active" data-tab="general">General</div>
+    <div class="tab" data-tab="products">Products</div>
+    <div class="tab" data-tab="categories">Categories</div>
+    <div class="tab" data-tab="appearance">Appearance</div>
+  </div>
+
+  <div id="tab-general" class="tab-content">
+    <div class="field"><label>Site title</label><input id="admin-site-title" type="text"></div>
+    <div class="field"><label>Hero title</label><input id="admin-hero-title" type="text"></div>
+    <div class="field"><label>Hero background image URL</label><input id="admin-hero-bg" type="text" placeholder="https://..."></div>
+  </div>
+
+  <div id="tab-products" class="tab-content" style="display:none">
+    <div class="field"><label>Products (JSON array). Each product: {id,title,price,desc,images:[...],categories:[...]}</label>
+    <textarea id="admin-products-json"></textarea></div>
+    <div style="display:flex;gap:8px">
+      <button id="save-admin-products" class="btn">Manual Save (backup)</button>
+      <button id="add-product" class="btn">Add new product</button>
+    </div>
+    <hr/>
+    <div class="small">Quick edit product (select then edit) — changes autosave</div>
+    <select id="quick-edit-select" style="width:100%;margin-top:8px"></select>
+    <div id="quick-edit-area" style="margin-top:8px;display:none">
+      <div class="field"><label>Title</label><input id="qe-title" type="text"></div>
+      <div class="field"><label>Price</label><input id="qe-price" type="text"></div>
+      <div class="field"><label>Categories (comma separated)</label><input id="qe-cats" type="text"></div>
+      <div class="field"><label>Images (one URL per line)</label><textarea id="qe-images"></textarea></div>
+      <div class="field"><label>Description</label><textarea id="qe-desc"></textarea></div>
+      <div style="display:flex;gap:8px"><button id="qe-save" class="btn">Save (manual)</button><button id="qe-delete" class="btn" style="background:#999">Delete</button></div>
+    </div>
+  </div>
+
+  <div id="tab-categories" class="tab-content" style="display:none">
+    <div class="field"><label>Categories (one per line)</label><textarea id="admin-cats"></textarea></div>
+    <div style="display:flex;gap:8px"><button id="save-admin-cats" class="btn">Save categories</button><button id="clear-cats" class="btn" style="background:#999">Clear</button></div>
+  </div>
+
+  <div id="tab-appearance" class="tab-content" style="display:none">
+    <div class="field"><label>Primary color (hex)</label><input id="admin-color" type="text" placeholder="#5b8c7a"></div>
+    <div class="field"><label>Logo text</label><input id="admin-logo-text" type="text"></div>
+    <div style="display:flex;gap:8px"><button id="save-appearance" class="btn">Save appearance</button></div>
+  </div>
+
+  <hr/>
+  <div style="display:flex;gap:8px"><button id="close-admin" class="btn" style="background:#999">Close</button><button id="logout-admin" class="btn" style="background:#c33">Logout</button></div>
+</div>
+
+<footer class="footer">
+  <div class="container" style="justify-content:space-between;align-items:center">
+    <div><strong id="footer-title">Crosera</strong><div class="small">Made with ❤️ for makers</div></div>
+    <div class="small">© <span id="year"></span> Crosera — demo</div>
+  </div>
+</footer>
+
+<!-- Firebase SDK (compat) -->
+<script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-database-compat.js"></script>
+
+<script>
+// Firebase config (from you)
+const firebaseConfig = {
+  apiKey: "AIzaSyBx2yTpvmaqL2DKkztANOZZ5y4vH8evsPs",
+  authDomain: "crosera-aba31.firebaseapp.com",
+  databaseURL: "https://crosera-aba31-default-rtdb.firebaseio.com/",
+  projectId: "crosera-aba31",
+  storageBucket: "crosera-aba31.firebasestorage.app",
+  messagingSenderId: "479876752660",
+  appId: "1:479876752660:web:80e9c33050a8f2375d4e01",
+  measurementId: "G-DBCJ38MXHS"
+};
+
+// Initialize Firebase
+firebase.initializeApp(firebaseConfig);
+const db = firebase.database();
+
+// Simple site data path
+const SITE_PATH = '/site';
+
+// Default demo data
+const DEFAULT = {
+  siteTitle: "Crosera",
+  heroTitle: "Learn, make, and love your creation",
+  heroBg: "",
+  color: "#5b8c7a",
+  logoText: "Cr",
+  categories: ["All","Bags","Accessories","Home","Amigurumi"],
+  products: [
+    { id: "p1", title: "Garden Bee Bag Kit", price: 34.00, desc: "All materials + video tutorial. Beginner friendly.", images: ["https://images.unsplash.com/photo-1520975916935-1e6d6c8f3d8e?auto=format&fit=crop&w=800&q=60"], categories: ["Bags"] },
+    { id: "p2", title: "Elegant Granny Bag", price: 38.50, desc: "Classic granny square inspired shoulder bag.", images: ["https://images.unsplash.com/photo-1512436991641-6745cdb1723f?auto=format&fit=crop&w=800&q=60","https://images.unsplash.com/photo-1520975916935-1e6d6c8f3d8e?auto=format&fit=crop&w=800&q=60"], categories: ["Bags"] },
+    { id: "p3", title: "Aveline Clutch Kit", price: 29.99, desc: "Small clutch kit with lining & clasp.", images: ["https://images.unsplash.com/photo-1519741492094-7e8a3d3d5a5c?auto=format&fit=crop&w=800&q=60"], categories: ["Accessories"] }
+  ]
+};
+
+// helper to set default if no data
+function ensureDefault(){
+  db.ref(SITE_PATH).once('value').then(function(snap){
+    if(snap.exists()) return;
+    db.ref(SITE_PATH).set(DEFAULT);
+  });
+}
+
+// realtime listener - update UI when site data changes
+db.ref(SITE_PATH).on('value', function(snapshot){
+  var data = snapshot.val();
+  if(!data) return;
+  window.SITE = data;
+  applyAppearance();
+  renderCategories();
+  renderProducts();
+  populateAdminFields();
+});
+
+ensureDefault();
+
+// --- UI rendering ---
+document.getElementById('year').textContent = (new Date()).getFullYear();
+
+function applyAppearance(){
+  var DATA = window.SITE || DEFAULT;
+  document.documentElement.style.setProperty('--brand-1', DATA.color || '#5b8c7a');
+  document.getElementById('site-title').textContent = DATA.siteTitle || 'Crosera';
+  document.getElementById('footer-title').textContent = DATA.siteTitle || 'Crosera';
+  document.getElementById('logo').textContent = DATA.logoText || 'Cr';
+  if(DATA.heroBg){ document.getElementById('left-sidebar').style.backgroundImage = 'url(' + DATA.heroBg + ')'; document.getElementById('left-sidebar').style.backgroundSize = 'cover'; document.getElementById('left-sidebar').style.backgroundPosition = 'center'; } else { document.getElementById('left-sidebar').style.backgroundImage = ''; }
+}
+
+function renderCategories(){
+  var DATA = window.SITE || DEFAULT;
+  var left = document.getElementById('left-cats'); left.innerHTML = '';
+  var dropdown = document.getElementById('filter-dropdown'); dropdown.innerHTML = '<option value=\"\">All categories</option>';
+  var topcat = document.getElementById('top-category'); topcat.innerHTML = '<option value=\"\">All categories</option>';
+  (DATA.categories||[]).forEach(function(cat){
+    var div = document.createElement('div'); div.className='category-link'; div.textContent = cat; div.onclick = function(){ filterByCategory(cat); }; left.appendChild(div);
+    var opt = document.createElement('option'); opt.value = cat; opt.textContent = cat; dropdown.appendChild(opt); topcat.appendChild(opt.cloneNode(true));
+  });
+}
+
+function renderProducts(){
+  var DATA = window.SITE || DEFAULT;
+  var grid = document.getElementById('product-grid'); grid.innerHTML='';
+  var filter = document.getElementById('search').value || '';
+  var cat = document.getElementById('top-category').value || '';
+  var list = (DATA.products||[]).slice();
+  if(filter) list = list.filter(function(p){ return (p.title + p.desc).toLowerCase().indexOf(filter.toLowerCase()) !== -1; });
+  if(cat) list = list.filter(function(p){ return (p.categories||[]).indexOf(cat) !== -1; });
+  list.forEach(function(p){
+    var card = document.createElement('div'); card.className='card';
+    var src = (p.images && p.images[0]) ? p.images[0] : 'https://via.placeholder.com/400x300?text=No+Image';
+    card.innerHTML = '<img src="'+src+'" loading="lazy" alt="'+p.title+'"/><div><strong>'+p.title+'</strong><div class=\"small\">'+p.desc+'</div></div><div style=\"display:flex;justify-content:space-between;align-items:center;margin-top:6px\"><div class=\"price\">$'+parseFloat(p.price).toFixed(2)+'</div><div><button class=\"btn view-product\" data-id=\"'+p.id+'\">View</button></div></div>';
+    grid.appendChild(card);
+  });
+  attachGridHandlers();
+}
+
+function attachGridHandlers(){ Array.prototype.forEach.call(document.querySelectorAll('.view-product'), function(btn){ btn.onclick = function(e){ showProduct(e.target.dataset.id); }; }); }
+
+function showProduct(id){
+  var DATA = window.SITE || DEFAULT;
+  var p = (DATA.products||[]).find(function(x){ return x.id === id; });
+  if(!p) return;
+  var detail = document.getElementById('product-detail');
+  detail.style.display = 'block';
+  detail.innerHTML = '<div class=\"product-top\"><div class=\"gallery\"><img class=\"main-img\" id=\"main-preview\" src=\"'+(p.images && p.images[0] ? p.images[0] : 'https://via.placeholder.com/600x400?text=No+Image')+'\" alt=\"'+p.title+'\"/><div class=\"thumbs\" id=\"thumbs\"></div></div><div class=\"product-info\"><h2>'+p.title+'</h2><div class=\"small\">Categories: '+(p.categories||[]).join(', ')+'</div><div style=\"margin-top:12px;\"><strong>$'+parseFloat(p.price).toFixed(2)+'</strong></div><div style=\"margin-top:12px\">'+p.desc+'</div><div style=\"margin-top:12px;display:flex;gap:8px\"><button class=\"btn\" id=\"add-to-cart\" data-id=\"'+p.id+'\">Add to cart</button><button class=\"btn\" id=\"open-edit\" style=\"background:#999\">Edit (admin)</button></div></div></div>';
+  var thumbs = document.getElementById('thumbs'); thumbs.innerHTML='';
+  (p.images||[]).forEach(function(img, idx){
+    var t = document.createElement('img'); t.src = img; t.className = 'thumb' + (idx===0 ? ' selected' : ''); t.onclick = function(){ document.getElementById('main-preview').src = img; Array.prototype.forEach.call(document.querySelectorAll('.thumb'), function(x){ x.classList.remove('selected'); }); t.classList.add('selected'); }; thumbs.appendChild(t);
+  });
+  document.getElementById('add-to-cart').onclick = function(){ addToCart(p.id); };
+  document.getElementById('open-edit').onclick = function(){ promptAdminLogin(function(){ openAdmin('products'); setTimeout(function(){ populateQuickEdit(); document.getElementById('quick-edit-select').value = p.id; document.getElementById('quick-edit-select').dispatchEvent(new Event('change')); },300); }); };
+  window.scrollTo({top:0,behavior:'smooth'});
+}
+
+// CART (local session only)
+var CART = {};
+function saveCart(){ localStorage.setItem('crosera_cart', JSON.stringify(CART)); updateCartUI(); }
+function addToCart(id){ if(!CART[id]) CART[id]={id:id,qty:0}; CART[id].qty+=1; saveCart(); showCart(true); }
+function updateCartUI(){ var count = Object.keys(CART).reduce(function(s,k){ return s + (CART[k].qty||0); },0); document.getElementById('cart-count').textContent = count; var items = document.getElementById('cart-items'); items.innerHTML=''; var total=0; Object.keys(CART).forEach(function(k){ var ci = CART[k]; var p = (window.SITE||DEFAULT).products.find(function(x){ return x.id===ci.id; }); if(!p) return; var row = document.createElement('div'); row.style.display='flex'; row.style.gap='8px'; row.style.marginBottom='8px'; row.innerHTML = '<img src=\"'+(p.images[0]||'https://via.placeholder.com/80')+'\" style=\"width:64px;height:64px;object-fit:cover;border-radius:8px\"/><div style=\"flex:1\"><div><strong>'+p.title+'</strong></div><div class=\"small\">$'+p.price+'</div><div style=\"margin-top:6px\"><input type=\"number\" min=\"0\" value=\"'+ci.qty+'\" style=\"width:70px\" data-id=\"'+ci.id+'\" class=\"cart-qty\"/></div></div>'; items.appendChild(row); total += p.price * ci.qty; }); document.getElementById('cart-total').textContent = total.toFixed(2); Array.prototype.forEach.call(document.querySelectorAll('.cart-qty'), function(el){ el.onchange = function(e){ var id = e.target.dataset.id; var v = parseInt(e.target.value)||0; if(v<=0) delete CART[id]; else CART[id].qty=v; saveCart(); }; }); }
+function showCart(show=true){ document.getElementById('cart-panel').style.display = show ? 'block' : 'none'; document.getElementById('cart-panel').setAttribute('aria-hidden', show? 'false':'true'); updateCartUI(); }
+document.getElementById('view-cart-btn').onclick = function(){ showCart(true); };
+document.getElementById('checkout').onclick = function(){ if(Object.keys(CART).length===0){ alert('Cart empty'); return; } alert('Demo checkout — no payment processing'); CART={}; saveCart(); showCart(false); };
+
+// SEARCH & FILTERS
+document.getElementById('search').addEventListener('input', function(){ renderProducts(); });
+document.getElementById('top-category').addEventListener('change', function(){ renderProducts(); });
+document.getElementById('filter-dropdown').addEventListener('change', function(e){ document.getElementById('top-category').value = e.target.value; renderProducts(); });
+function filterByCategory(cat){ document.getElementById('top-category').value = cat; renderProducts(); }
+
+// ADMIN: authentication (password 'motherforever' hashed client-side, plaintext not stored)
+async function sha256(text){ var enc=new TextEncoder(); var data=enc.encode(text); var h=await crypto.subtle.digest('SHA-256',data); return Array.prototype.map.call(new Uint8Array(h), function(b){ return ('00' + b.toString(16)).slice(-2); }).join(''); }
+var ADMIN_HASH = "8932c33dfce5a2e862c6720a8311fb27dd2dd66d674c45ca21ff5ef8af4f2fc5";
+
+function promptAdminLogin(onSuccess){ var pw = prompt('Admin password:'); if(pw===null) return; sha256(pw).then(function(h){ if(h === ADMIN_HASH){ openAdmin(); if(onSuccess) onSuccess(); } else { alert('Incorrect password'); } }); }
+
+function openAdmin(tab){ document.getElementById('admin-panel').style.display='block'; document.getElementById('admin-panel').setAttribute('aria-hidden','false'); populateAdminFields(); if(tab) switchTab(tab); }
+function closeAdmin(){ document.getElementById('admin-panel').style.display='none'; document.getElementById('admin-panel').setAttribute('aria-hidden','true'); }
+document.getElementById('open-admin-btn').onclick = function(){ promptAdminLogin(openAdmin); };
+document.getElementById('close-admin').onclick = closeAdmin;
+document.getElementById('logout-admin').onclick = function(){ closeAdmin(); alert('Logged out (demo)'); };
+
+// admin tabs
+Array.prototype.forEach.call(document.querySelectorAll('.tab'), function(t){ t.onclick = function(){ Array.prototype.forEach.call(document.querySelectorAll('.tab'), function(x){ x.classList.remove('active'); }); t.classList.add('active'); Array.prototype.forEach.call(document.querySelectorAll('.tab-content'), function(c){ c.style.display='none'; }); document.getElementById('tab-'+t.dataset.tab).style.display='block'; }; });
+
+// populate admin UI from SITE and wire instant-save
+function populateAdminFields(){
+  var DATA = window.SITE || DEFAULT;
+  document.getElementById('admin-site-title').value = DATA.siteTitle || '';
+  document.getElementById('admin-hero-title').value = DATA.heroTitle || '';
+  document.getElementById('admin-hero-bg').value = DATA.heroBg || '';
+  document.getElementById('admin-products-json').value = JSON.stringify(DATA.products||[],null,2);
+  document.getElementById('admin-cats').value = (DATA.categories||[]).join('\\n');
+  document.getElementById('admin-color').value = DATA.color || '';
+  document.getElementById('admin-logo-text').value = DATA.logoText || '';
+  populateQuickEdit();
+}
+
+// instant-save helpers
+function writeSite(data){ db.ref(SITE_PATH).set(data); } // overwrite entire site object
+
+// wire instant-save events for simple fields (General tab)
+document.getElementById('admin-site-title').addEventListener('input', function(){ var v=document.getElementById('admin-site-title').value; var s = window.SITE || DEFAULT; s.siteTitle = v; writeSite(s); });
+document.getElementById('admin-hero-title').addEventListener('input', function(){ var v=document.getElementById('admin-hero-title').value; var s = window.SITE || DEFAULT; s.heroTitle = v; writeSite(s); });
+document.getElementById('admin-hero-bg').addEventListener('input', function(){ var v=document.getElementById('admin-hero-bg').value; var s = window.SITE || DEFAULT; s.heroBg = v; writeSite(s); });
+
+// appearance instant-save
+document.getElementById('admin-color').addEventListener('input', function(){ var v=document.getElementById('admin-color').value; var s = window.SITE || DEFAULT; s.color = v; writeSite(s); });
+document.getElementById('admin-logo-text').addEventListener('input', function(){ var v=document.getElementById('admin-logo-text').value; var s = window.SITE || DEFAULT; s.logoText = v; writeSite(s); });
+
+// categories instant-save
+document.getElementById('admin-cats').addEventListener('input', function(){ var arr = document.getElementById('admin-cats').value.split('\\n').map(function(s){ return s.trim(); }).filter(Boolean); var s = window.SITE || DEFAULT; s.categories = arr; writeSite(s); });
+
+// products quick-edit wiring (instant-save on change)
+function populateQuickEdit(){ var sel = document.getElementById('quick-edit-select'); sel.innerHTML=''; (window.SITE.products||[]).forEach(function(p){ var o = document.createElement('option'); o.value=p.id; o.textContent = p.title; sel.appendChild(o); }); }
+document.getElementById('quick-edit-select').addEventListener('change', function(){ var id = document.getElementById('quick-edit-select').value; var area = document.getElementById('quick-edit-area'); if(!id){ area.style.display='none'; return; } area.style.display='block'; var p = (window.SITE||DEFAULT).products.find(function(x){ return x.id===id; }); document.getElementById('qe-title').value = p.title; document.getElementById('qe-price').value = p.price; document.getElementById('qe-cats').value = (p.categories||[]).join(', '); document.getElementById('qe-images').value = (p.images||[]).join('\\n'); document.getElementById('qe-desc').value = p.desc; });
+
+// instant-save handlers for quick-edit fields (on input)
+['qe-title','qe-price','qe-cats','qe-images','qe-desc'].forEach(function(id){ document.getElementById(id).addEventListener('input', function(){ var pid = document.getElementById('quick-edit-select').value; if(!pid) return; var p = (window.SITE.products||[]).find(function(x){ return x.id===pid; }); if(!p) return; p.title = document.getElementById('qe-title').value; p.price = parseFloat(document.getElementById('qe-price').value) || 0; p.categories = document.getElementById('qe-cats').value.split(',').map(function(s){ return s.trim(); }).filter(Boolean); p.images = document.getElementById('qe-images').value.split('\\n').map(function(s){ return s.trim(); }).filter(Boolean); p.desc = document.getElementById('qe-desc').value; var s = window.SITE || DEFAULT; s.products = window.SITE.products; writeSite(s); }); });
+
+document.getElementById('qe-delete').onclick = function(){ if(!confirm('Delete product?')) return; var id = document.getElementById('quick-edit-select').value; var s = window.SITE || DEFAULT; s.products = s.products.filter(function(x){ return x.id!==id; }); writeSite(s); };
+
+document.getElementById('add-product').onclick = function(){ var id = 'p'+Math.random().toString(36).slice(2,9); var obj = { id:id, title:'New Product', price:0, desc:'', images:[], categories:[] }; var s = window.SITE || DEFAULT; s.products = s.products.concat([obj]); writeSite(s); setTimeout(function(){ populateQuickEdit(); document.getElementById('quick-edit-select').value = id; document.getElementById('quick-edit-select').dispatchEvent(new Event('change')); },300); };
+
+// manual save button for backup (writes admin JSON field to DB)
+document.getElementById('save-admin-products').onclick = function(){ try{ var arr = JSON.parse(document.getElementById('admin-products-json').value); var s = window.SITE || DEFAULT; s.products = arr; writeSite(s); alert('Saved'); }catch(e){ alert('Invalid JSON'); } };
+
+// save categories button (manual)
+document.getElementById('save-admin-cats').onclick = function(){ var arr = document.getElementById('admin-cats').value.split('\\n').map(function(s){ return s.trim(); }).filter(Boolean); var s = window.SITE || DEFAULT; s.categories = arr; writeSite(s); alert('Saved'); };
+
+// appearance save manual
+document.getElementById('save-appearance').onclick = function(){ var s = window.SITE || DEFAULT; s.color = document.getElementById('admin-color').value || s.color; s.logoText = document.getElementById('admin-logo-text').value || s.logoText; writeSite(s); alert('Saved'); };
+
+// view home
+document.getElementById('view-home').onclick = function(){ document.getElementById('product-detail').style.display='none'; renderProducts(); window.scrollTo({top:0}); };
+
+// initial load helpers
+window.addEventListener('load', function(){ setTimeout(function(){ try{ var s = window.SITE || DEFAULT; if(!s) return; populateQuickEdit(); renderProducts(); }catch(e){} },800); });
+
+// allow ctrl+shift+a to open admin
+window.addEventListener('keydown', function(e){ if(e.ctrlKey && e.shiftKey && e.key.toLowerCase()==='a'){ promptAdminLogin(openAdmin); } });
+
+</script>
+</body>
+</html>
